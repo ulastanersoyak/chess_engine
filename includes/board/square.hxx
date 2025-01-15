@@ -1,6 +1,6 @@
 #pragma once
 
-#include "piece/piece.hxx"
+#include "piece.hxx"
 
 #include <algorithm>
 #include <array>
@@ -68,15 +68,6 @@ public:
   place_piece (const piece &p) noexcept
   {
     occupying_piece = p;
-  }
-
-  [[nodiscard]] constexpr auto
-  to_string () const noexcept -> std::string
-  {
-    return std::format ("{}{} {}", coord.file, coord.rank,
-                        occupying_piece.has_value ()
-                            ? occupying_piece.value ().to_string ()
-                            : " ");
   }
 
 private:

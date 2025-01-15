@@ -1,6 +1,6 @@
 #pragma once
 
-#include "square/square.hxx"
+#include "board/square.hxx"
 
 namespace board_tests
 {
