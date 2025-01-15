@@ -61,3 +61,5 @@ endif()
 if(CMAKE_BUILD_TYPE STREQUAL Release)
   add_compile_options(-Ofast)
 endif()
+
+add_subdirectory(src)
