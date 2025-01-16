@@ -1,10 +1,15 @@
 #include "board/board.hxx"
+#include "engine/piece_moves.hxx"
+#include "gui/background.hxx"
 #include "gui/click_event.hxx"
 #include "gui/draw.hxx"
 #include "gui/raii_wrapper.hxx"
 #include "gui/texture_cache.hxx"
+
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+
+#include <algorithm>
 #include <filesystem>
 #include <print>
 
@@ -50,8 +55,17 @@ main (int argc, char *argv[])
       return -1;
     }
 
+  background bg{ *renderer.get () };
+  if (!bg.load_texture ((assets_path / "background.png").c_str ()))
+    {
+      SDL_Log ("failed to load background\n");
+      return -1;
+    }
+
   bool running = true;
-  std::optional<square::coordinate> highlighted_square;
+  std::optional<square::coordinate> selected_square;
+  std::vector<square::coordinate> valid_moves;
+  bool white_turn = true;
 
   while (running)
     {
@@ -69,39 +83,47 @@ main (int argc, char *argv[])
                   if (auto click = get_clicked_square (event, b))
                     {
                       const auto &[position, square] = *click;
+                      if (selected_square)
+                        {
+                          if (std::ranges::find_if (
+                                  valid_moves,
+                                  [&position] (const auto &move) {
+                                    return move.rank == position.rank
+                                           && move.file == position.file;
+                                  })
+                              != valid_moves.end ())
+                            {
+                              auto piece = b.at (selected_square->rank)
+                                               .at (selected_square->file)
+                                               .remove_piece ();
+                              b.at (position.rank)
+                                  .at (position.file)
+                                  .place_piece (piece.value ());
 
-                      // Toggle highlight on clicked square
-                      if (highlighted_square.has_value ()
-                          && highlighted_square->file == position.file
-                          && highlighted_square->rank == position.rank)
-                        {
-                          highlighted_square.reset ();
+                              white_turn = !white_turn;
+                              selected_square.reset ();
+                              valid_moves.clear ();
+                            }
+                          else
+                            {
+                              selected_square.reset ();
+                              valid_moves.clear ();
+                            }
                         }
-                      else
+                      else if (square.is_occupied ())
                         {
-                          highlighted_square = position;
-                        }
-
-                      if (square.is_occupied ())
-                        {
-                          const auto &piece = square.get_piece ().value ();
-                          std::println ("clicked {} {} at position ({}, {})",
-                                        piece.is_black () ? "black" : "white",
-                                        piece.get_type_as_str (),
-                                        position.file, position.rank);
-                        }
-                      else
-                        {
-                          std::println (
-                              "clicked empty square at position ({}, {})",
-                              position.file, position.rank);
+                          if (square.get_piece ()->is_black () != white_turn)
+                            {
+                              selected_square = position;
+                              valid_moves = get_moves (b, square);
+                            }
                         }
                     }
                 }
             }
         }
 
-      draw (*renderer.get (), b, cache, highlighted_square);
+      draw (*renderer.get (), b, cache, bg, selected_square, valid_moves);
     }
 
   IMG_Quit ();

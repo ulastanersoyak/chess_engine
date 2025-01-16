@@ -2,6 +2,7 @@ find_package(SDL2 REQUIRED)
 find_package(SDL2_image REQUIRED)
 
 add_subdirectory(gui)
+add_subdirectory(engine)
 
 add_executable(main main.cxx)
 
@@ -16,4 +17,5 @@ target_link_libraries(main PRIVATE
     SDL2::SDL2main 
     SDL2_image::SDL2_image
     gui
+    engine
 )
